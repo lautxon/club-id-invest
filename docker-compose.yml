@@ -1,0 +1,188 @@
+# Club ID Invest - Docker Compose para Desarrollo y Codespaces
+# Servicios: PostgreSQL, Redis, Backend, Frontend, Celery
+
+services:
+  # ===========================================================================
+  # SERVICIO PRINCIPAL - Dev Container
+  # ===========================================================================
+  devcontainer:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspaces:cached
+    command: sleep infinity
+    networks:
+      - club_id_network
+    depends_on:
+      - postgres
+      - redis
+
+  # ===========================================================================
+  # BASE DE DATOS - PostgreSQL 15
+  # ===========================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: club_id_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: club_id_invest
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - club_id_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================================================
+  # CACHE & MESSAGE BROKER - Redis 7
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: club_id_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - club_id_network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================================================
+  # BACKEND - FastAPI
+  # ===========================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    container_name: club_id_backend
+    restart: unless-stopped
+    working_dir: /workspaces
+    volumes:
+      - ..:/workspaces:cached
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/club_id_invest
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      SECRET_KEY: dev-secret-key-change-in-production-min-32-chars
+      DEBUG: "True"
+      CORS_ORIGINS: '["http://localhost:3000","http://localhost:8000","http://127.0.0.1:3000","http://127.0.0.1:8000"]'
+      API_PREFIX: /api
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+    command: >
+      sh -c "pip install -r requirements.txt &&
+             uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+    networks:
+      - club_id_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ===========================================================================
+  # CELERY WORKER
+  # ===========================================================================
+  celery_worker:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    container_name: club_id_celery_worker
+    working_dir: /workspaces
+    volumes:
+      - ..:/workspaces:cached
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/club_id_invest
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      SECRET_KEY: dev-secret-key-change-in-production-min-32-chars
+      DEBUG: "True"
+    command: >
+      sh -c "pip install -r requirements.txt &&
+             celery -A app.tasks.celery_app worker --loglevel=info --pool=solo"
+    networks:
+      - club_id_network
+    depends_on:
+      - backend
+      - redis
+
+  # ===========================================================================
+  # CELERY BEAT (Scheduler)
+  # ===========================================================================
+  celery_beat:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    container_name: club_id_celery_beat
+    working_dir: /workspaces
+    volumes:
+      - ..:/workspaces:cached
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/club_id_invest
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      SECRET_KEY: dev-secret-key-change-in-production-min-32-chars
+      DEBUG: "True"
+    command: >
+      sh -c "pip install -r requirements.txt &&
+             celery -A app.tasks.celery_app beat --loglevel=info"
+    networks:
+      - club_id_network
+    depends_on:
+      - backend
+      - redis
+
+  # ===========================================================================
+  # FRONTEND - Next.js 14
+  # ===========================================================================
+  frontend:
+    image: node:20-alpine
+    container_name: club_id_frontend
+    restart: unless-stopped
+    working_dir: /workspaces/frontend
+    volumes:
+      - ..:/workspaces:cached
+    ports:
+      - "3000:3000"
+    environment:
+      API_URL: http://localhost:8000/api
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+    command: >
+      sh -c "npm install &&
+             npm run dev -- -H 0.0.0.0 -p 3000"
+    networks:
+      - club_id_network
+    depends_on:
+      - backend
+
+# ===========================================================================
+# REDES Y VOLÚMENES
+# ===========================================================================
+networks:
+  club_id_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

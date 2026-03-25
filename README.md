@@ -38,6 +38,17 @@ Club ID Invest es una plataforma Fintech que permite la inversión colectiva en 
 - **Auth**: JWT + Role Based Access Control (RBAC)
 - **Docs**: Swagger/OpenAPI automático
 
+### ☁️ GitHub Codespaces
+
+El proyecto está configurado para desarrollarse en **GitHub Codespaces** con:
+
+- Entorno preconfigurado (Python 3.11, Node.js 20, PostgreSQL 15, Redis 7)
+- Docker Compose para todos los servicios
+- Extensiones de VS Code instaladas automáticamente
+- Variables de entorno configuradas
+
+[![Abrir en GitHub Codespaces](https://img.shields.io/badge/Abrir%20en-Codespaces-blue?logo=github)](https://codespaces.new/lautxon/club-id-invest)
+
 ## 📁 Estructura del Proyecto
 
 ```
@@ -105,7 +116,65 @@ club id invest/
 
 ## 🚀 Instalación
 
-### Backend
+### ☁️ GitHub Codespaces (Recomendado)
+
+La forma más rápida de empezar es usando **GitHub Codespaces**:
+
+1. **Abrir el repositorio en Codespaces**
+   - Hacé clic en el botón "Code" en GitHub
+   - Seleccioná "Create codespace on main"
+   - O usá este link: https://codespaces.new/lautxon/club-id-invest
+
+2. **Esperar la configuración automática**
+   - El Codespace instalará Python, Node.js, PostgreSQL y Redis
+   - Las extensiones de VS Code se instalarán automáticamente
+   - Los scripts de post-creación configurarán el entorno
+
+3. **Iniciar los servicios con Docker Compose**
+```bash
+docker-compose up -d
+```
+
+4. **Acceder a las aplicaciones**
+   - **Frontend**: http://localhost:3000
+   - **Backend API**: http://localhost:8000
+   - **Swagger Docs**: http://localhost:8000/api/docs
+   - **PostgreSQL**: localhost:5432
+   - **Redis**: localhost:6379
+
+5. **Comandos útiles**
+```bash
+# Ver logs de todos los servicios
+docker-compose logs -f
+
+# Ver logs de un servicio específico
+docker-compose logs -f backend
+
+# Detener todos los servicios
+docker-compose down
+
+# Reiniciar un servicio
+docker-compose restart backend
+
+# Ejecutar tests
+docker-compose exec backend pytest tests/ -v
+
+# Acceder a la terminal del backend
+docker-compose exec backend bash
+
+# Acceder a la terminal del frontend
+docker-compose exec frontend sh
+```
+
+**Ventajas de Codespaces:**
+- ✅ Sin instalación local de PostgreSQL/Redis
+- ✅ Entorno idéntico para todo el equipo
+- ✅ Configuración versionada en el repo
+- ✅ Ideal para la Fase 4 (Tests E2E + Deploy)
+
+---
+
+### Backend (Instalación Local)
 
 #### Prerrequisitos
 
