@@ -3,6 +3,7 @@ Club ID Invest - Configuration Settings
 Business Rules & Constants for Fintech Investment Platform
 """
 
+from enum import Enum
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 from typing import Optional
@@ -78,7 +79,7 @@ class InvestmentLimits:
 # PROJECT CATEGORIES
 # =============================================================================
 
-class ProjectCategories:
+class ProjectCategories(str, Enum):
     """
     Project classification levels matching investor tiers.
     """
@@ -151,8 +152,6 @@ def get_settings() -> Settings:
 # =============================================================================
 # ENUM DEFINITIONS
 # =============================================================================
-
-from enum import Enum
 
 
 class MembershipCategoryEnum(str, Enum):

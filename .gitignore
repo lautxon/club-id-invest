@@ -20,6 +20,9 @@ wheels/
 .installed.cfg
 *.egg
 
+# IMPORTANT: frontend/src/lib/ is NOT ignored (needed for TypeScript)
+!frontend/src/lib/
+
 # Virtual Environment
 venv/
 env/
