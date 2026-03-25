@@ -84,12 +84,11 @@ async def root():
 
 
 # =============================================================================
-# INCLUDE ROUTERS (Commented out - to be implemented in Phase 3)
+# INCLUDE ROUTERS (Phase 2 - API Endpoints)
 # =============================================================================
-# from app.api import users, projects, investments, memberships, contracts, auth
-# app.include_router(auth.router, prefix=f"{settings.API_PREFIX}/auth", tags=["Authentication"])
-# app.include_router(users.router, prefix=f"{settings.API_PREFIX}/users", tags=["Users"])
-# app.include_router(memberships.router, prefix=f"{settings.API_PREFIX}/memberships", tags=["Memberships"])
-# app.include_router(projects.router, prefix=f"{settings.API_PREFIX}/projects", tags=["Projects"])
-# app.include_router(investments.router, prefix=f"{settings.API_PREFIX}/investments", tags=["Investments"])
-# app.include_router(contracts.router, prefix=f"{settings.API_PREFIX}/contracts", tags=["Contracts"])
+from app.api import projects, investments, contracts, dashboard
+
+app.include_router(projects.router, prefix=f"{settings.API_PREFIX}/projects", tags=["Projects"])
+app.include_router(investments.router, prefix=f"{settings.API_PREFIX}/investments", tags=["Investments"])
+app.include_router(contracts.router, prefix=f"{settings.API_PREFIX}/contracts", tags=["Contracts"])
+app.include_router(dashboard.router, prefix=f"{settings.API_PREFIX}/dashboard", tags=["Dashboard"])

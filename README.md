@@ -46,26 +46,34 @@ club id invest/
 │   ├── __init__.py
 │   ├── main.py                 # FastAPI application
 │   ├── core/
-│   │   ├── __init__.py
 │   │   ├── config.py           # Business rules & constants
 │   │   └── database.py         # SQLAlchemy connection
-│   ├── models/
-│   │   ├── __init__.py
-│   │   ├── users.py            # User authentication
-│   │   ├── legal_entities.py   # Corporate structures
-│   │   ├── memberships.py      # Investor tiers
-│   │   ├── projects.py         # Investment projects
-│   │   ├── investments.py      # Investment tracking
-│   │   ├── contracts.py        # Legal contracts
-│   │   └── audit_logs.py       # Compliance audit trail
-│   ├── schemas/                # Pydantic schemas
-│   ├── services/               # Business logic
-│   └── api/                    # REST endpoints
+│   ├── models/                 # SQLAlchemy models (Phase 1)
+│   │   ├── users.py
+│   │   ├── legal_entities.py
+│   │   ├── memberships.py
+│   │   ├── projects.py
+│   │   ├── investments.py
+│   │   ├── contracts.py
+│   │   └── audit_logs.py
+│   ├── schemas/                # Pydantic schemas (Phase 2)
+│   │   └── __init__.py
+│   ├── services/               # Business logic (Phase 2)
+│   │   ├── investment_service.py
+│   │   ├── membership_service.py
+│   │   └── contract_service.py
+│   ├── tasks/                  # Celery tasks (Phase 2)
+│   │   ├── celery_app.py
+│   │   └── scheduled_tasks.py
+│   └── api/                    # REST endpoints (Phase 2)
+│       ├── investments.py
+│       ├── projects.py
+│       ├── contracts.py
+│       └── dashboard.py
 ├── tests/
-│   ├── __init__.py
-│   └── test_business_rules.py  # Unit tests
+│   └── test_business_rules.py
 ├── docs/
-│   └── ERD.md                  # Database diagram
+│   └── ERD.md
 ├── requirements.txt
 ├── .env.example
 └── README.md
@@ -83,7 +91,7 @@ club id invest/
 
 1. **Clonar el repositorio**
 ```bash
-git clone <repository-url>
+git clone https://github.com/lautxon/club-id-invest.git
 cd club-id-invest
 ```
 
@@ -141,6 +149,33 @@ http://localhost:8000/api/docs
 
 Ver [ERD.md](docs/ERD.md) para el diagrama completo de entidad-relación.
 
+## 🔌 API Endpoints (Phase 2)
+
+### Investments
+- `POST /api/investments/validate` - Validar inversión antes de crear
+- `POST /api/investments/` - Crear nueva inversión
+- `GET /api/investments/{id}` - Obtener detalles de inversión
+- `GET /api/investments/` - Listar inversiones con filtros
+- `POST /api/investments/{id}/confirm` - Confirmar pago manualmente
+
+### Projects
+- `GET /api/projects/` - Listar proyectos con filtros
+- `GET /api/projects/{id}` - Obtener detalles de proyecto
+- `GET /api/projects/{id}/investors` - Obtener lista de inversores (anónima)
+
+### Contracts
+- `POST /api/contracts/` - Generar nuevo contrato
+- `POST /api/contracts/{id}/generate-pdf` - Generar PDF
+- `POST /api/contracts/{id}/send-signature` - Enviar para firma
+- `POST /api/contracts/{id}/sign` - Firmar electrónicamente
+- `GET /api/contracts/{id}` - Obtener contrato
+- `GET /api/contracts/` - Listar contratos
+
+### Dashboard
+- `GET /api/dashboard/` - Dashboard completo del usuario
+- `GET /api/dashboard/alerts` - Obtener alertas pendientes
+- `GET /api/dashboard/projects` - Progreso de proyectos activos
+
 ## 🧪 Testing
 
 Los tests unitarios cubren las reglas de co-inversión automática:
@@ -163,6 +198,27 @@ pytest tests/ --cov=app
 - 179 días vs 180 días (6 meses)
 - 269 días vs 270 días (9 meses)
 
+## 🔄 Celery Tasks (Background Jobs)
+
+### Tareas Programadas
+
+| Tarea | Frecuencia | Descripción |
+|-------|------------|-------------|
+| `run_auto_investment_check` | Diaria | Verifica y dispara co-inversión del Club |
+| `run_membership_lifecycle_check` | Diaria | Gestiona inactividad y penalizaciones |
+| `send_contract_reminders` | 6 horas | Envía recordatorios de contratos pendientes |
+| `update_funding_progress` | Horaria | Actualiza progreso de financiación |
+
+### Ejecutar Celery
+
+```bash
+# Worker
+celery -A app.tasks.celery_app worker --loglevel=info
+
+# Beat (scheduler)
+celery -A app.tasks.celery_app beat --loglevel=info
+```
+
 ## 🔐 Seguridad
 
 - JWT con RBAC (4 roles: investor, project_manager, admin, super_admin)
@@ -174,9 +230,29 @@ pytest tests/ --cov=app
 ## 📝 Fases de Desarrollo
 
 - [x] **Fase 1**: Modelado de datos (SQLAlchemy)
-- [ ] **Fase 2**: Lógica de negocio (Servicios)
-- [ ] **Fase 3**: API REST & Seguridad
-- [ ] **Fase 4**: Frontend (Next.js)
+- [x] **Fase 2**: Lógica de negocio + API REST + Celery
+- [ ] **Fase 3**: Autenticación JWT + Frontend (Next.js)
+- [ ] **Fase 4**: Tests E2E + Deploy a producción
+
+## 🔧 Comandos Útiles
+
+```bash
+# Iniciar API en desarrollo
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Iniciar Celery worker
+celery -A app.tasks.celery_app worker --loglevel=info --pool=solo
+
+# Iniciar Celery beat (scheduler)
+celery -A app.tasks.celery_app beat --loglevel=info
+
+# Ver tareas de Celery
+celery -A app.tasks.celery_app inspect active
+
+# Migraciones de base de datos (Alembic)
+alembic revision --autogenerate -m "Description"
+alembic upgrade head
+```
 
 ## 📄 Licencia
 
@@ -188,4 +264,4 @@ Desarrollado por el equipo de Club ID Invest
 
 ---
 
-**Nota**: Este proyecto está en desarrollo activo. Para producción, usar migraciones de Alembic en lugar de `init_db()`.
+**Nota**: Para producción, usar migraciones de Alembic en lugar de `init_db()` y configurar adecuadamente las variables de entorno en `.env`.
