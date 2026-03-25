@@ -84,10 +84,12 @@ async def root():
 
 
 # =============================================================================
-# INCLUDE ROUTERS (Phase 2 - API Endpoints)
+# INCLUDE ROUTERS (Phase 2 + Phase 3 - API Endpoints)
 # =============================================================================
-from app.api import projects, investments, contracts, dashboard
+from app.api import projects, investments, contracts, dashboard, auth, users
 
+app.include_router(auth.router, prefix=f"{settings.API_PREFIX}/auth", tags=["Authentication"])
+app.include_router(users.router, prefix=f"{settings.API_PREFIX}/users", tags=["Users"])
 app.include_router(projects.router, prefix=f"{settings.API_PREFIX}/projects", tags=["Projects"])
 app.include_router(investments.router, prefix=f"{settings.API_PREFIX}/investments", tags=["Investments"])
 app.include_router(contracts.router, prefix=f"{settings.API_PREFIX}/contracts", tags=["Contracts"])

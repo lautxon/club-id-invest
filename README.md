@@ -30,7 +30,7 @@ Club ID Invest es una plataforma Fintech que permite la inversión colectiva en 
 
 ### Stack Tecnológico
 
-- **Frontend**: Next.js 14 (TypeScript), Tailwind CSS, Shadcn/UI
+- **Frontend**: Next.js 14 (TypeScript), Tailwind CSS, Shadcn/UI, Framer Motion
 - **Backend**: Python FastAPI (Tipado fuerte, Pydantic)
 - **Base de Datos**: PostgreSQL (Transaccional)
 - **ORM**: SQLAlchemy 2.0 + Alembic (Migraciones)
@@ -42,12 +42,13 @@ Club ID Invest es una plataforma Fintech que permite la inversión colectiva en 
 
 ```
 club id invest/
-├── app/
+├── app/                        # Backend FastAPI
 │   ├── __init__.py
 │   ├── main.py                 # FastAPI application
 │   ├── core/
 │   │   ├── config.py           # Business rules & constants
-│   │   └── database.py         # SQLAlchemy connection
+│   │   ├── database.py         # SQLAlchemy connection
+│   │   └── security.py         # JWT & password hashing (Phase 3)
 │   ├── models/                 # SQLAlchemy models (Phase 1)
 │   │   ├── users.py
 │   │   ├── legal_entities.py
@@ -58,18 +59,41 @@ club id invest/
 │   │   └── audit_logs.py
 │   ├── schemas/                # Pydantic schemas (Phase 2)
 │   │   └── __init__.py
-│   ├── services/               # Business logic (Phase 2)
+│   ├── services/               # Business logic (Phase 2 + 3)
 │   │   ├── investment_service.py
 │   │   ├── membership_service.py
-│   │   └── contract_service.py
+│   │   ├── contract_service.py
+│   │   └── auth_service.py     # Authentication (Phase 3)
 │   ├── tasks/                  # Celery tasks (Phase 2)
 │   │   ├── celery_app.py
 │   │   └── scheduled_tasks.py
-│   └── api/                    # REST endpoints (Phase 2)
+│   └── api/                    # REST endpoints (Phase 2 + 3)
+│       ├── auth.py             # Authentication (Phase 3)
+│       ├── users.py            # User management (Phase 3)
 │       ├── investments.py
 │       ├── projects.py
 │       ├── contracts.py
 │       └── dashboard.py
+├── frontend/                   # Next.js Frontend (Phase 3)
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── dashboard/
+│   │   │   ├── login/
+│   │   │   ├── register/
+│   │   │   ├── page.tsx
+│   │   │   ├── layout.tsx
+│   │   │   └── providers.tsx
+│   │   ├── components/
+│   │   │   ├── DashboardMember.tsx
+│   │   │   ├── ProjectCard.tsx
+│   │   │   ├── AlertSystem.tsx
+│   │   │   └── ui.tsx
+│   │   └── lib/
+│   │       ├── api.ts
+│   │       ├── auth-store.ts
+│   │       └── utils.ts
+│   ├── package.json
+│   └── README.md
 ├── tests/
 │   └── test_business_rules.py
 ├── docs/
@@ -81,13 +105,15 @@ club id invest/
 
 ## 🚀 Instalación
 
-### Prerrequisitos
+### Backend
+
+#### Prerrequisitos
 
 - Python 3.11+
 - PostgreSQL 15+
 - Redis 7+
 
-### Pasos de Instalación
+#### Pasos de Instalación
 
 1. **Clonar el repositorio**
 ```bash
@@ -134,6 +160,34 @@ uvicorn app.main:app --reload
 http://localhost:8000/api/docs
 ```
 
+### Frontend
+
+1. **Navegar al directorio frontend**
+```bash
+cd frontend
+```
+
+2. **Instalar dependencias**
+```bash
+npm install
+```
+
+3. **Configurar variables de entorno**
+```bash
+# Crear .env.local
+echo "API_URL=http://localhost:8000/api" > .env.local
+```
+
+4. **Iniciar servidor de desarrollo**
+```bash
+npm run dev
+```
+
+5. **Acceder a la aplicación**
+```
+http://localhost:3000
+```
+
 ## 📊 Modelos de Datos
 
 ### Tablas Principales
@@ -149,7 +203,26 @@ http://localhost:8000/api/docs
 
 Ver [ERD.md](docs/ERD.md) para el diagrama completo de entidad-relación.
 
-## 🔌 API Endpoints (Phase 2)
+## 🔌 API Endpoints
+
+### Authentication (Phase 3)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/register` | POST | Registrar nuevo usuario |
+| `/api/auth/login` | POST | Login y obtener tokens JWT |
+| `/api/auth/logout` | POST | Logout (invalidar sesión) |
+| `/api/auth/refresh` | POST | Refresh access token |
+| `/api/auth/me` | GET | Obtener usuario actual |
+| `/api/auth/change-password` | POST | Cambiar contraseña |
+
+### Users (Phase 3 - Admin)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/users/` | GET | Listar usuarios (admin) |
+| `/api/users/{id}` | GET | Obtener usuario (admin) |
+| `/api/users/{id}/activate` | PATCH | Activar usuario (admin) |
+| `/api/users/{id}/deactivate` | PATCH | Desactivar usuario (admin) |
+| `/api/users/{id}/role` | PATCH | Cambiar rol (admin) |
 
 ### Investments
 - `POST /api/investments/validate` - Validar inversión antes de crear
@@ -226,15 +299,37 @@ celery -A app.tasks.celery_app beat --loglevel=info
 - Audit logging de todas las operaciones críticas
 - Retención de logs: 7 años (2555 días)
 - Validación estricta con Pydantic
+- Refresh tokens con expiración de 7 días
+- Access tokens con expiración de 30 minutos
+
+## 🖥️ Frontend (Phase 3)
+
+### Componentes Principales
+
+- **DashboardMember**: Dashboard principal con estadísticas de portfolio
+- **ProjectCard**: Card de proyecto con barra de progreso y regla de co-inversión
+- **AlertSystem**: Sistema de alertas con notificaciones en tiempo real
+- **UI Primitives**: Componentes reutilizables (Button, Card, Input, Badge, etc.)
+
+### Características
+
+- Autenticación JWT con refresh automático
+- React Query para data fetching y caching
+- Zustand para estado global
+- Framer Motion para animaciones
+- Tailwind CSS para styling
+- Diseño responsive mobile-first
 
 ## 📝 Fases de Desarrollo
 
 - [x] **Fase 1**: Modelado de datos (SQLAlchemy)
 - [x] **Fase 2**: Lógica de negocio + API REST + Celery
-- [ ] **Fase 3**: Autenticación JWT + Frontend (Next.js)
+- [x] **Fase 3**: Autenticación JWT + Frontend Next.js
 - [ ] **Fase 4**: Tests E2E + Deploy a producción
 
 ## 🔧 Comandos Útiles
+
+### Backend
 
 ```bash
 # Iniciar API en desarrollo
@@ -252,6 +347,24 @@ celery -A app.tasks.celery_app inspect active
 # Migraciones de base de datos (Alembic)
 alembic revision --autogenerate -m "Description"
 alembic upgrade head
+```
+
+### Frontend
+
+```bash
+cd frontend
+
+# Desarrollo
+npm run dev
+
+# Build de producción
+npm run build
+
+# Start production server
+npm start
+
+# Linting
+npm run lint
 ```
 
 ## 📄 Licencia
